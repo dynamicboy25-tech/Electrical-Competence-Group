@@ -223,15 +223,54 @@ else:
             else:
                 st.button("Next: Emergency Protocols ➡️", disabled=True, help="Please check the acknowledgment box above to proceed.")
 
-        # PAGE 4: Emergency & DSEAR
+       # PAGE 4: Emergency & DSEAR
         elif st.session_state.training_step == 4:
             st.header("Module 4: Emergency Protocols & Hazardous Environments")
-            st.write("""
-            * **The Two-Person Rule:** For any energized Category 2 testing, a second briefed person must be present to operate the Emergency Power Off (EPO) if needed.
-            * **Hazardous Environments (DSEAR):** If you are working near explosive gases (like hydrogen or battery off-gassing) or in wet labs, standard electrical equipment is strictly prohibited. ATEX-certified (Ex) or IP67-rated components are mandatory.
-            * **Machinery:** All bespoke automated machinery must have a hardwired emergency stop. Software-only stops are illegal.
+            st.write("Even with perfect planning, equipment can fail. Your immediate response during a failure dictates whether an incident is a near-miss or a catastrophe.")
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.info("""
+                **👥 The Two-Person Rule**
+                **Lone working is strictly forbidden for energized Category 2 work.** 
+                
+                A "Second Person" must be present. This person cannot just be wearing headphones at another desk; they must be explicitly briefed on the experiment and trained on how to safely isolate the rig (e.g., hitting the EPO) in an emergency.
+                """)
+            
+            with col2:
+                st.warning("""
+                **🛑 Machinery & Hardwired E-Stops**
+                Under the Supply of Machinery (Safety) Regulations, all bespoke automated machinery (e.g., custom dynamometers) must have a **hardwired Emergency Power Off (EPO)** circuit. 
+                
+                Software-only stops (clicking an e-stop button on a PC interface) are illegal because software can freeze during a fault.
+                """)
+
+            st.divider()
+
+            st.subheader("Hazardous Environments (DSEAR)")
+            st.warning("""
+            If you are working near explosive gases (like hydrogen fuel cells or battery off-gassing) or in wet fluid-testing labs, standard electrical equipment is strictly prohibited. 
+            * **Explosive Atmospheres:** Require **ATEX-certified (Ex)** barrier glands and enclosures to prevent sparks from igniting the gas. 
+            * **Wet Labs:** Require **IP67+** rated waterproof components.
             """)
-            st.button("Proceed to Final Quiz ➡️", on_click=next_step)
+            
+            st.subheader("Thermal Runaway Emergency Protocol")
+            st.error("""
+            **IF A BATTERY VENTS OR CATCHES FIRE INSIDE A BLAST-RATED CONTAINMENT BOX:**
+            1. **DO NOT OPEN THE BOX.** Introducing fresh oxygen will cause an immediate fireball and explosion.
+            2. Hit the local Emergency Power Off (EPO) to cut power to the test rig.
+            3. Evacuate the immediate area.
+            4. Alert a trained First Aider and the Lab Manager immediately.
+            """)
+            
+            # Add friction: Checkbox required to proceed
+            confirm_emergency = st.checkbox("I understand the Two-Person Rule, the hardwired EPO requirement, and the 'DO NOT OPEN' protocol for thermal runaway emergencies.")
+            
+            if confirm_emergency:
+                st.button("Proceed to Final Quiz ➡️", on_click=next_step)
+            else:
+                st.button("Proceed to Final Quiz ➡️", disabled=True, help="Please check the acknowledgment box above to proceed.")
 
         # PAGE 5: The 10-Question Quiz
         elif st.session_state.training_step == 5:
