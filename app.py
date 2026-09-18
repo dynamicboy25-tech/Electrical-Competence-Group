@@ -8,7 +8,8 @@ st.set_page_config(page_title="UCL Electrical Competence App", layout="centered"
 if 'user_db' not in st.session_state:
     st.session_state.user_db = {
         "admin": {"inducted": True, "tier": "CAT III"},
-        "student1": {"inducted": False, "tier": "Pending"}
+        "student1": {"inducted": False, "tier": "Pending"},
+        "pouya": {"inducted": True, "tier": "CAT III"}
     }
 if 'logged_in_user' not in st.session_state:
     st.session_state.logged_in_user = None
@@ -34,6 +35,7 @@ def reset_training():
 def pass_induction():
     st.session_state.user_db[st.session_state.logged_in_user]["inducted"] = True
     st.session_state.user_db[st.session_state.logged_in_user]["tier"] = "CAT I"
+    st.session_state.training_step = 1  # Reset for next time
     st.success("Induction passed! You are now a CAT I Standard Operative.")
     st.rerun()
 
@@ -43,7 +45,7 @@ st.title("⚡ UCL Electrical Competence Group")
 if st.session_state.logged_in_user is None:
     st.subheader("Welcome to the ESPER Portal")
     with st.form("login_form"):
-        username_input = st.text_input("Username (e.g., student1, admin):").strip().lower()
+        username_input = st.text_input("Username (e.g., student1, pouya):").strip().lower()
         submit_button = st.form_submit_button("Log In")
         if submit_button and username_input != "":
             if username_input not in st.session_state.user_db:
@@ -82,21 +84,38 @@ else:
         # PAGE 2: ESPER Framework & Flowchart
         elif st.session_state.training_step == 2:
             st.header("Module 2: The ESPER Competency Framework")
-            st.info("""
-            **CAT I (Standard Operative):** Authorized to use standard, off-the-shelf, CE-marked equipment plugged into standard 13A sockets. **You may NOT build, open, or modify bespoke circuits.**
+            st.write("To ensure safety, UCL categorizes personnel and activities into distinct tiers. Your training determines what you are legally allowed to touch.")
             
-            **CAT II (Advanced Operative):** Authorized to design/build bespoke electronics and battery packs. Requires formal CPD training and a Specialist Review.
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.success("🟢 **CAT I (Standard)**\n\nAuthorized to use standard, off-the-shelf equipment (13A plug). **Cannot build, open, or modify circuits.**")
+            with col2:
+                st.warning("🟡 **CAT II (Advanced)**\n\nAuthorized to design and build bespoke electronics and battery packs. Requires CPD & Specialist Review.")
+            with col3:
+                st.error("🔴 **CAT III (Specialist)**\n\nLab Managers & specialists handling high-voltage, unshielded, or facility-level infrastructure.")
+
+            st.divider()
             
-            **CAT III (Specialist Operative):** Infrastructure specialists handling high-voltage/high-risk systems.
-            """)
-            st.write("*Please review the Activity Decision Matrix below:*")
-            # Note for GitHub deployment: Save your flowchart image as 'decision_tree.png' in the same folder as this app.
+            st.subheader("The Activity Decision Matrix")
+            st.write("Before starting any new work, you must trace your activity on the flowchart below.")
+            
             try:
-                st.image("decision_tree.png", caption="UCL Electrical Safety Decision Tree")
+                st.image("decision_tree.png", caption="UCL Electrical Safety Decision Tree", use_container_width=True)
             except:
                 st.warning("[Flowchart Image Placeholder: Upload 'decision_tree.png' to GitHub to display here]")
             
-            st.button("Next: Voltage Limits ➡️", on_click=next_step)
+            st.info("""
+            💡 **How to read this chart:** 
+            Notice the very first question: *Is it plug connected, MCB protected, and used for its intended purpose?* 
+            If the answer is **No**, you automatically enter **Category 2 (Complex)** work. As a new CAT I Operative, you must stop and seek your PI or Lab Manager.
+            """)
+            
+            confirm_matrix = st.checkbox("I understand that as a CAT I Operative, I must stop work and seek authorization if my activity falls under Category 2.")
+            
+            if confirm_matrix:
+                st.button("Next: Voltage Limits ➡️", on_click=next_step)
+            else:
+                st.button("Next: Voltage Limits ➡️", disabled=True, help="Please check the confirmation box above to proceed.")
 
         # PAGE 3: Voltage & Batteries
         elif st.session_state.training_step == 3:
@@ -140,7 +159,6 @@ else:
                 submit_quiz = st.form_submit_button("Submit Answers")
                 
                 if submit_quiz:
-                    # Check answers
                     answers = [
                         q1 == "The Principal Investigator (PI) / Lab Manager",
                         q2 == "Use standard, off-the-shelf equipment plugged into a 13A socket",
@@ -154,30 +172,85 @@ else:
                         q10 == "Scan the rig's QR code using this App"
                     ]
                     
-                    score = sum(bool(a) for a in answers) # Counts true values
+                    score = sum(bool(a) for a in answers)
                     
                     if None in [q1, q2, q3, q4, q5, q6, q7, q8, q9, q10]:
                         st.warning("Please answer all questions before submitting.")
                     elif score >= 8:
                         st.balloons()
-                        st.success(f"You scored {score}/10! Passed.")
                         pass_induction()
                     else:
                         st.error(f"You scored {score}/10. 80% (8/10) is required to pass.")
                         st.button("Review Modules and Try Again", on_click=reset_training)
 
     # ==========================================
-    # FLOW B: INDUCTED USER DASHBOARD (SEARCH)
+    # FLOW B: INDUCTED USER DASHBOARD (TABS)
     # ==========================================
     else:
-        st.header("Lab Information & Document Search")
         st.success(f"Cleared for {user_data['tier']} operations.")
         
-        search_query = st.text_input("🔍 Search Database (e.g., RIG-001, BATT-02, Pouya):", "")
-        if search_query:
-            results = doc_db[doc_db.apply(lambda row: row.astype(str).str.contains(search_query, case=False).any(), axis=1)]
-            if not results.empty:
-                st.write(f"**Found {len(results)} matching records:**")
-                st.dataframe(results, use_container_width=True, hide_index=True)
-            else:
-                st.warning("No documents or equipment found matching that query.")
+        # Create the Tabs
+        tab1, tab2 = st.tabs(["🔍 Search & Dashboard", "📚 Document Library"])
+        
+        # --- TAB 1: Search ---
+        with tab1:
+            st.header("Lab Information Search")
+            search_query = st.text_input("Search Database (e.g., RIG-001, BATT-02, Pouya):", "")
+            
+            if search_query:
+                results = doc_db[doc_db.apply(lambda row: row.astype(str).str.contains(search_query, case=False).any(), axis=1)]
+                if not results.empty:
+                    st.write(f"**Found {len(results)} matching records:**")
+                    st.dataframe(results, use_container_width=True, hide_index=True)
+                else:
+                    st.warning("No documents or equipment found matching that query.")
+                    
+            st.divider()
+            st.subheader("Quick Links")
+            col_a, col_b = st.columns(2)
+            with col_a:
+                st.button("📄 Submit New Permit to Energise")
+                st.button("⚙️ Log Maintenance Activity")
+            with col_b:
+                st.button("🚨 Emergency Isolation Protocols", type="primary")
+
+        # --- TAB 2: Document Library ---
+        with tab2:
+            st.header("Official Electrical Competence Documents")
+            st.write("Review the summaries below to understand the rules governing our laboratories. Click the links to access the complete, legally binding documents.")
+
+            st.divider()
+
+            st.subheader("1. UCL Corporate Policy: Electrical Safety, Testing, and Maintenance")
+            st.write("**Who is it for?** All staff, PIs, and students.")
+            st.write("**Core Summary:**")
+            st.write("""
+            * **Legal Framework:** Outlines UCL's statutory duties under EAWR 1989, PUWER 1998, and DSEAR 2002.
+            * **Competency & Accountability:** Defines the ESPER tier system (CAT I, II, III). Establishes that Principal Investigators (PIs) and Lab Managers are strictly accountable for ensuring students do not work outside their authorized tier.
+            * **Information Access:** Mandates the use of this App and QR codes on all active rigs to provide immediate access to safety protocols and maintenance logs.
+            """)
+            st.markdown("[📄 **Read Full Corporate Policy (PDF)**](https://github.com/your-repo/corporate-policy.pdf)")
+
+            st.divider()
+
+            st.subheader("2. Technical Safety Framework & Decision Matrix")
+            st.write("**Who is it for?** Researchers and students planning new experiments or custom test rigs.")
+            st.write("**Core Summary:**")
+            st.write("""
+            * **Activity Decision Tree:** Provides the step-by-step flowchart to determine if your work is Category 1 (Standard) or Category 2 (Complex/High Risk).
+            * **Battery Rules:** Establishes that **all energized bare battery work is Category 2**, regardless of voltage, due to thermal runaway and short-circuit risks.
+            * **Operational Rules:** Details the strict requirements for the "Two-Person Rule" during energized testing and the mandatory ATEX/IP67 component checks for hazardous environments.
+            """)
+            st.markdown("[📄 **Read Full Safety Framework & Decision Matrix (PDF)**](https://github.com/your-repo/technical-framework.pdf)")
+
+            st.divider()
+
+            st.subheader("3. Industrial Electrical Infrastructure: Conductor Selection & Installation")
+            st.write("**Who is it for?** Category II and III Operatives building custom machinery, dynamometers, or fixed infrastructure.")
+            st.write("**Core Summary:**")
+            st.write("""
+            * **Cable Sizing & Routing:** The definitive engineering guide for selecting H07RN-F flexible cables and SWA for mechanical protection.
+            * **Hazardous Environments:** Dictates exactly how to route cables through explosive atmospheres (requiring ATEX barrier glands) and wet labs (requiring IP67+ components).
+            * **Verification Testing:** Details the strict testing protocols (Insulation Resistance, Earth Loop Impedance $Z_s$) required before a Permit to Energise can be issued.
+            """)
+            st.markdown("[📄 **Read Full Infrastructure Guide (PDF)**](https://github.com/your-repo/infrastructure-guide.pdf)")
