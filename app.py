@@ -79,7 +79,7 @@ if st.session_state.logged_in_user is None:
     st.subheader("Welcome to the ESPER Portal")
     with st.form("login_form"):
         name_input = st.text_input("Full Name:").strip()
-        upi_input = st.text_input("UCL UPI (e.g., zcab123, admin):").strip().lower()
+        upi_input = st.text_input("UCL UPI (e.g., zcab123):").strip().lower()
         submit_button = st.form_submit_button("Log In")
         
         if submit_button and upi_input != "" and name_input != "":
