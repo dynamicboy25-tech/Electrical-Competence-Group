@@ -77,31 +77,61 @@ else:
         st.header("Day 1 Basic Electrical Induction")
         st.warning("You must complete this basic training and pass the quiz before accessing the lab or searching documents.")
         
-        # Training Content
+        # --- ENHANCED TRAINING CONTENT ---
+        st.markdown("### 📚 Module 1: The Regulatory Framework")
         st.write("""
-        ### Section 1: The Competency Framework
-        UCL uses the ESPER framework. As a new user, you will start as a **CAT I Standard Operative**. This allows you to use standard, off-the-shelf equipment (plugged into a standard 13A socket). You may not build or modify bespoke circuits.
+        Electrical work at UCL is governed by strict UK laws, primarily the **Electricity at Work Regulations 1989 (EAWR)** and **PUWER 1998**. These laws mandate that all equipment must be safe, suitable for its intended environment, and operated only by competent individuals. Top-down management applies here: your Principal Investigator (PI) is strictly accountable for ensuring you operate only within your authorized tier.
+        """)
         
-        ### Section 2: Voltage Limits & Batteries
-        Standard low voltage exemptions apply to current-limited sources below **50V AC or 120V DC**. However, **batteries are never exempt** due to the severe risk of high short-circuit currents and thermal runaway.
+        st.markdown("### 🧑‍🔧 Module 2: The ESPER Competency Framework")
+        st.info("""
+        UCL uses the **Electrically Skilled Persons Register (ESPER)** to categorize what work you are legally allowed to perform.
+        * **CAT I (Standard Operative):** This is your starting tier. You are authorized to use standard, off-the-shelf, CE-marked equipment plugged into standard 13A sockets. **You may NOT build, open, or modify bespoke circuits.**
+        * **CAT II (Advanced Operative):** Researchers authorized to design and build bespoke electronics and battery packs. Requires formal CPD training.
+        * **CAT III (Specialist Operative):** Lab Managers and infrastructure specialists handling high-voltage/high-risk systems.
+        """)
         
-        ### Section 3: The Two-Person Rule
-        For any complex, energized Category II testing, a second person must be present and trained to operate the Emergency Power Off (EPO) button.
+        st.markdown("### ⚡ Module 3: Voltage Limits & Battery Hazards")
+        st.error("""
+        **Category 2 (Complex/High Risk) Work** automatically includes any setup exceeding standard Separated Extra Low Voltage (SELV) limits: **50V AC or 120V DC**. 
+        
+        **THE BATTERY EXCEPTION:** Standard low-voltage exemptions do **NOT** apply to batteries. Even a single 3.7V lithium-ion cell carries severe risks of high short-circuit currents, arc flashes, and thermal runaway. Therefore, **all bare battery assembly and testing is classified as Category 2** and requires a formal Risk Assessment and Permit to Energise.
+        """)
+        
+        st.markdown("### 🚨 Module 4: Emergency Protocols & The Two-Person Rule")
+        st.write("""
+        * **The Two-Person Rule:** For any complex, energized Category 2 testing, a second briefed person must be present. They must know how to operate the Emergency Power Off (EPO) button and safely isolate the rig.
+        * **Hazardous Environments (DSEAR):** If you are working near explosive gases (like hydrogen or battery off-gassing) or in wet labs, standard electrical equipment is strictly prohibited. ATEX-certified (Ex) or IP67-rated components are mandatory.
+        * **Emergency Response:** If a battery vents or equipment catches fire inside a containment box, **do not open the box**. Hit the EPO, evacuate the immediate area, and alert a first aider.
         """)
         
         st.divider()
         
-        # Induction Quiz
-        st.subheader("Induction Quiz")
+        # --- INDUCTION QUIZ ---
+        st.subheader("📝 Induction Quiz")
+        st.write("Review the modules above, then complete this quiz to unlock your CAT I lab access.")
         with st.form("quiz_form"):
-            q1 = st.radio("1. What is your starting competency tier?", ["CAT III (Specialist)", "CAT II (Advanced)", "CAT I (Standard)"])
-            q2 = st.radio("2. Are bare lithium-ion batteries exempt from Category II rules if they are under 50V?", ["Yes, they are safe.", "No, they carry high short-circuit risks."])
-            q3 = st.radio("3. Can you do energized CAT II testing alone?", ["Yes, if you are careful.", "No, the Two-Person Rule applies."])
+            q1 = st.radio("1. As a new CAT I Standard Operative, are you allowed to build or modify bespoke circuits?", 
+                          ["Yes, if I am careful.", 
+                           "No, I may only use standard off-the-shelf equipment.", 
+                           "Yes, if it is under 50V."])
+            
+            q2 = st.radio("2. Are bare lithium-ion batteries exempt from Category II rules if they are under 50V?", 
+                          ["Yes, low voltage means low risk.", 
+                           "No, they carry high short-circuit and thermal runaway risks."])
+            
+            q3 = st.radio("3. What is the 'Two-Person Rule'?", 
+                          ["Two people must sign the Risk Assessment.", 
+                           "A second person trained to use the Emergency Power Off (EPO) must be present for energized Cat II testing.", 
+                           "Equipment must have two separate power cables."])
             
             submit_quiz = st.form_submit_button("Submit Quiz")
             
             if submit_quiz:
-                if q1 == "CAT I (Standard)" and q2 == "No, they carry high short-circuit risks." and q3 == "No, the Two-Person Rule applies.":
+                # Correct Answers
+                if (q1 == "No, I may only use standard off-the-shelf equipment." and 
+                    q2 == "No, they carry high short-circuit and thermal runaway risks." and 
+                    q3 == "A second person trained to use the Emergency Power Off (EPO) must be present for energized Cat II testing."):
                     pass_induction()
                 else:
                     st.error("One or more answers are incorrect. Please review the training material and try again.")
