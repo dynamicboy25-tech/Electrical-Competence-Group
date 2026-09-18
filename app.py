@@ -101,13 +101,51 @@ else:
         # PAGE 1: The Regulatory Framework
         if st.session_state.training_step == 1:
             st.header("Module 1: The Regulatory Framework")
-            st.write("""
-            Electrical work at UCL is governed by strict UK laws. 
-            * **EAWR 1989:** Mandates that all electrical systems must be constructed and maintained to prevent danger.
-            * **PUWER 1998:** Requires that equipment is suitable for its intended use, maintained safely, and operated only by trained individuals.
-            * **Accountability:** Your Principal Investigator (PI) and Lab Manager are legally accountable for your safety. Operating outside of your authorized training tier is a direct breach of university policy and UK law.
+            st.write("Electrical work within the department is not just guided by best practices; it is governed by strict, legally binding UK legislation. Ignorance of these laws is not a defense.")
+            
+            st.subheader("The Core Legislation")
+            
+            # Use columns to break up the text and make it digestible
+            law1, law2 = st.columns(2)
+            
+            with law1:
+                st.info("""
+                **⚡ The Electricity at Work Regulations 1989 (EAWR)**
+                The primary statutory law. It mandates that all systems must be constructed and maintained to prevent danger. **BS 7671 (The IET Wiring Regulations)** is the technical standard used to achieve this compliance.
+                """)
+                
+                st.info("""
+                **🏭 Provision and Use of Work Equipment Regs 1998 (PUWER)**
+                Requires that all lab equipment is suitable for its intended use, safe, and maintained. It legally mandates verification testing (like Earth Loop Impedance) and strict operator training.
+                """)
+            
+            with law2:
+                st.warning("""
+                **💥 Dangerous Substances & Explosive Atmospheres (DSEAR)**
+                Requires control of fire and explosion risks. In our labs, this is heavily triggered by **battery off-gassing** (thermal runaway) and hydrogen use, dictating strict ATEX-rated components.
+                """)
+                
+                st.warning("""
+                **⚙️ Supply of Machinery (Safety) Regulations 2008**
+                Applies to bespoke machinery built in-house (e.g., custom dynamometers). Requires fail-safe control circuits and hardwired Emergency Stops (E-Stops) that override software.
+                """)
+
+            st.divider()
+            
+            st.subheader("Top-Down Management & PI Accountability")
+            st.error("""
+            **Your Principal Investigator (PI) and Lab Manager bear the primary legal responsibility for your safety.**
+            
+            They are strictly accountable for ensuring you operate *only* within your authorized competency tier (CAT I, II, or III). Attempting complex electrical work without the prerequisite training and a formal **Permit to Energise** is a critical breach of institutional competence and safety compliance.
             """)
-            st.button("Next: Competency Tiers ➡️", on_click=next_step)
+            
+            # Add friction: Checkbox required to proceed
+            confirm_law = st.checkbox("I acknowledge that my PI is accountable for my authorization, and working outside my authorized tier is a breach of UCL policy and UK law.")
+            
+            if confirm_law:
+                st.button("Next: Competency Tiers ➡️", on_click=next_step)
+            else:
+                st.button("Next: Competency Tiers ➡️", disabled=True, help="Please check the acknowledgment box above to proceed.")
 
         # PAGE 2: ESPER Framework & Flowchart
         elif st.session_state.training_step == 2:
