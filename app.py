@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+from datetime import datetime
 
 # --- Page Configuration ---
 st.set_page_config(page_title="UCL Electrical Competence App", layout="centered")
@@ -7,10 +8,11 @@ st.set_page_config(page_title="UCL Electrical Competence App", layout="centered"
 # --- Mock Database & State Initialization ---
 if 'user_db' not in st.session_state:
     st.session_state.user_db = {
-        "admin": {"inducted": True, "tier": "CAT III"},
-        "student1": {"inducted": False, "tier": "Pending"},
-        "pouya": {"inducted": True, "tier": "CAT III"}
+        "admin": {"name": "System Admin", "upi": "admin", "inducted": True, "tier": "CAT III"},
+        "pouya": {"name": "Pouya Kolahian", "upi": "pouya", "inducted": True, "tier": "CAT III"}
     }
+if 'quiz_logs' not in st.session_state:
+    st.session_state.quiz_logs = []  # Stores the Excel log data
 if 'logged_in_user' not in st.session_state:
     st.session_state.logged_in_user = None
 if 'training_step' not in st.session_state:
@@ -32,33 +34,43 @@ def next_step():
 def reset_training():
     st.session_state.training_step = 1
 
-def pass_induction():
-    st.session_state.user_db[st.session_state.logged_in_user]["inducted"] = True
-    st.session_state.user_db[st.session_state.logged_in_user]["tier"] = "CAT I"
+def log_attempt(upi, name, score_val, passed):
+    """Logs the quiz attempt for Excel export"""
+    record = {
+        "Date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "Name": name,
+        "UPI": upi,
+        "Score": f"{score_val}/10",
+        "Result": "Pass" if passed else "Fail (Retake Required)"
+    }
+    st.session_state.quiz_logs.append(record)
+
+def pass_induction(upi, name, score_val):
+    st.session_state.user_db[upi]["inducted"] = True
+    st.session_state.user_db[upi]["tier"] = "CAT I"
     st.session_state.training_step = 1  
+    log_attempt(upi, name, score_val, True)
     st.success("Induction passed! You are now a CAT I Standard Operative.")
     st.rerun()
 
 def render_download_buttons(key_prefix):
-    """Renders the document download buttons safely, preventing duplicate key errors."""
     try:
         with open("corporate_policy.pdf", "rb") as pdf_file:
             st.download_button(label="⬇️ Download Corporate Policy", data=pdf_file, file_name="UCL_Corporate_Policy.pdf", mime="application/pdf", key=f"{key_prefix}_1")
     except FileNotFoundError:
-        st.warning("⚠️ corporate_policy.pdf not yet uploaded to repository.")
+        st.warning("⚠️ corporate_policy.pdf not yet uploaded.")
         
     try:
         with open("technical_framework.pdf", "rb") as pdf_file:
-            st.download_button(label="⬇️ Download Safety Framework & Decision Tree", data=pdf_file, file_name="UCL_Technical_Safety_Framework.pdf", mime="application/pdf", key=f"{key_prefix}_2")
+            st.download_button(label="⬇️ Download Safety Framework", data=pdf_file, file_name="UCL_Technical_Safety_Framework.pdf", mime="application/pdf", key=f"{key_prefix}_2")
     except FileNotFoundError:
-        st.warning("⚠️ technical_framework.pdf not yet uploaded to repository.")
+        st.warning("⚠️ technical_framework.pdf not yet uploaded.")
         
     try:
         with open("infrastructure_guide.pdf", "rb") as pdf_file:
             st.download_button(label="⬇️ Download Infrastructure Guide", data=pdf_file, file_name="UCL_Industrial_Infrastructure.pdf", mime="application/pdf", key=f"{key_prefix}_3")
     except FileNotFoundError:
-        st.warning("⚠️ infrastructure_guide.pdf not yet uploaded to repository.")
-
+        st.warning("⚠️ infrastructure_guide.pdf not yet uploaded.")
 
 # --- Main App Logic ---
 st.title("⚡ UCL Electrical Competence Group")
@@ -66,20 +78,25 @@ st.title("⚡ UCL Electrical Competence Group")
 if st.session_state.logged_in_user is None:
     st.subheader("Welcome to the ESPER Portal")
     with st.form("login_form"):
-        username_input = st.text_input("Username (e.g., student1, pouya):").strip().lower()
+        name_input = st.text_input("Full Name:").strip()
+        upi_input = st.text_input("UCL UPI (e.g., zcab123, admin):").strip().lower()
         submit_button = st.form_submit_button("Log In")
-        if submit_button and username_input != "":
-            if username_input not in st.session_state.user_db:
-                st.session_state.user_db[username_input] = {"inducted": False, "tier": "Pending"}
-            st.session_state.logged_in_user = username_input
+        
+        if submit_button and upi_input != "" and name_input != "":
+            if upi_input not in st.session_state.user_db:
+                st.session_state.user_db[upi_input] = {"name": name_input, "upi": upi_input, "inducted": False, "tier": "Pending"}
+            st.session_state.logged_in_user = upi_input
             st.rerun()
+        elif submit_button:
+            st.error("Please enter both your Name and UPI.")
 
 else:
-    current_user = st.session_state.logged_in_user
-    user_data = st.session_state.user_db[current_user]
+    current_upi = st.session_state.logged_in_user
+    user_data = st.session_state.user_db[current_upi]
     
-    st.sidebar.write(f"**Logged in as:** {current_user}")
-    st.sidebar.write(f"**Competency Tier:** {user_data['tier']}")
+    st.sidebar.write(f"**Name:** {user_data['name']}")
+    st.sidebar.write(f"**UPI:** {current_upi}")
+    st.sidebar.write(f"**Tier:** {user_data['tier']}")
     if st.sidebar.button("Log Out"):
         st.session_state.logged_in_user = None
         st.session_state.training_step = 1
@@ -91,7 +108,6 @@ else:
     if not user_data["inducted"]:
         st.progress(st.session_state.training_step / 5, text=f"Step {st.session_state.training_step} of 5")
         
-        # Accessible Document Expander on EVERY training page
         with st.expander("📚 View Official Reference Documents"):
             st.write("You may reference the official policies at any time during this induction or quiz.")
             render_download_buttons(key_prefix="induction")
@@ -102,180 +118,99 @@ else:
         if st.session_state.training_step == 1:
             st.header("Module 1: The Regulatory Framework")
             st.write("Electrical work within the department is not just guided by best practices; it is governed by strict, legally binding UK legislation. Ignorance of these laws is not a defense.")
-            
             st.subheader("The Core Legislation")
             
-            # Use columns to break up the text and make it digestible
             law1, law2 = st.columns(2)
-            
             with law1:
-                st.info("""
-                **⚡ The Electricity at Work Regulations 1989 (EAWR)**
-                The primary statutory law. It mandates that all systems must be constructed and maintained to prevent danger. **BS 7671 (The IET Wiring Regulations)** is the technical standard used to achieve this compliance.
-                """)
-                
-                st.info("""
-                **🏭 Provision and Use of Work Equipment Regs 1998 (PUWER)**
-                Requires that all lab equipment is suitable for its intended use, safe, and maintained. It legally mandates verification testing (like Earth Loop Impedance) and strict operator training.
-                """)
-            
+                st.info("**⚡ The Electricity at Work Regulations 1989 (EAWR)**\nThe primary statutory law. Mandates that all systems must be constructed and maintained to prevent danger.")
+                st.info("**🏭 Provision and Use of Work Equipment Regs 1998 (PUWER)**\nRequires that all lab equipment is suitable for its intended use, safe, and maintained.")
             with law2:
-                st.warning("""
-                **💥 Dangerous Substances & Explosive Atmospheres (DSEAR)**
-                Requires control of fire and explosion risks. In our labs, this is heavily triggered by **battery off-gassing** (thermal runaway) and hydrogen use, dictating strict ATEX-rated components.
-                """)
-                
-                st.warning("""
-                **⚙️ Supply of Machinery (Safety) Regulations 2008**
-                Applies to bespoke machinery built in-house (e.g., custom dynamometers). Requires fail-safe control circuits and hardwired Emergency Stops (E-Stops) that override software.
-                """)
+                st.warning("**💥 Dangerous Substances & Explosive Atmospheres (DSEAR)**\nRequires control of fire and explosion risks (e.g., battery off-gassing).")
+                st.warning("**⚙️ Supply of Machinery (Safety) Regulations 2008**\nApplies to bespoke machinery built in-house. Requires hardwired Emergency Stops.")
 
             st.divider()
-            
             st.subheader("Top-Down Management & PI Accountability")
-            st.error("""
-            **Your Principal Investigator (PI) and Lab Manager bear the primary legal responsibility for your safety.**
+            st.error("**Your Principal Investigator (PI) and Lab Manager bear the primary legal responsibility for your safety.**\n\nThey are strictly accountable for ensuring you operate *only* within your authorized competency tier.")
             
-            They are strictly accountable for ensuring you operate *only* within your authorized competency tier (CAT I, II, or III). Attempting complex electrical work without the prerequisite training and a formal **Permit to Energise** is a critical breach of institutional competence and safety compliance.
-            """)
-            
-            # Add friction: Checkbox required to proceed
             confirm_law = st.checkbox("I acknowledge that my PI is accountable for my authorization, and working outside my authorized tier is a breach of UCL policy and UK law.")
-            
             if confirm_law:
                 st.button("Next: Competency Tiers ➡️", on_click=next_step)
             else:
-                st.button("Next: Competency Tiers ➡️", disabled=True, help="Please check the acknowledgment box above to proceed.")
+                st.button("Next: Competency Tiers ➡️", disabled=True)
 
         # PAGE 2: ESPER Framework & Flowchart
         elif st.session_state.training_step == 2:
             st.header("Module 2: The ESPER Competency Framework")
-            st.write("To ensure safety, UCL categorizes personnel and activities into distinct tiers. Your training determines what you are legally allowed to touch.")
+            st.write("To ensure safety, UCL categorizes personnel and activities into distinct tiers.")
             
             col1, col2, col3 = st.columns(3)
             with col1:
-                st.success("🟢 **CAT I (Standard)**\n\nAuthorized to use standard, off-the-shelf equipment (13A plug). **Cannot build, open, or modify circuits.**")
+                st.success("🟢 **CAT I (Standard)**\nAuthorized to use standard, off-the-shelf equipment. Cannot build or modify circuits.")
             with col2:
-                st.warning("🟡 **CAT II (Advanced)**\n\nAuthorized to design and build bespoke electronics and battery packs. Requires CPD & Specialist Review.")
+                st.warning("🟡 **CAT II (Advanced)**\nAuthorized to design and build bespoke electronics. Requires CPD & Specialist Review.")
             with col3:
-                st.error("🔴 **CAT III (Specialist)**\n\nLab Managers & specialists handling high-voltage, unshielded, or facility-level infrastructure.")
+                st.error("🔴 **CAT III (Specialist)**\nLab Managers & specialists handling infrastructure.")
 
             st.divider()
-            
             st.subheader("The Activity Decision Matrix")
-            st.write("Before starting any new work, you must trace your activity on the flowchart below.")
-            
             try:
                 st.image("decision_tree.png", caption="UCL Electrical Safety Decision Tree", use_container_width=True)
             except:
-                st.warning("[Flowchart Image Placeholder: Upload 'decision_tree.png' to GitHub to display here]")
+                st.warning("[Flowchart Image Placeholder]")
             
-            st.info("""
-            💡 **How to read this chart:** 
-            Notice the very first question: *Is it plug connected, MCB protected, and used for its intended purpose?* 
-            If the answer is **No**, you automatically enter **Category 2 (Complex)** work. As a new CAT I Operative, you must stop and seek your PI or Lab Manager.
-            """)
+            st.info("💡 **How to read this chart:** If the equipment is NOT plug connected, MCB protected, and used for its intended purpose, you automatically enter **Category 2 (Complex)** work.")
             
             confirm_matrix = st.checkbox("I understand that as a CAT I Operative, I must stop work and seek authorization if my activity falls under Category 2.")
-            
             if confirm_matrix:
                 st.button("Next: Voltage Limits ➡️", on_click=next_step)
             else:
-                st.button("Next: Voltage Limits ➡️", disabled=True, help="Please check the confirmation box above to proceed.")
+                st.button("Next: Voltage Limits ➡️", disabled=True)
 
         # PAGE 3: Voltage & Batteries
         elif st.session_state.training_step == 3:
             st.header("Module 3: Voltage Limits & Battery Hazards")
-            st.write("A common and dangerous misconception in the laboratory is that 'low voltage' always means 'low risk.' The ESPER framework strictly separates voltage hazards (shock) from current hazards (fire and thermal runaway).")
+            st.write("The ESPER framework strictly separates voltage hazards (shock) from current hazards (fire and thermal runaway).")
             
             col1, col2 = st.columns(2)
-            
             with col1:
-                st.info("""
-                **🔌 The Low Voltage Exemption**
-                Systems operating strictly below **42.2V AC or 60V DC** are generally exempt from the Specialist Review and remain Category 1, **PROVIDED** they are driven by a current-limited source (like a standard benchtop power supply). 
-                
-                At these levels, the primary risk of lethal electric shock is mitigated.
-                """)
-            
+                st.info("**🔌 The Low Voltage Exemption**\nSystems operating strictly below **42.2V AC or 60V DC** are generally exempt from the Specialist Review, PROVIDED they are driven by a current-limited source.")
             with col2:
-                st.warning("""
-                **🔥 The Short-Circuit Hazard**
-                Even at safe touch voltages (e.g., 12V), if the power source is capable of delivering high sustained currents, a short circuit will dump massive amounts of energy instantly. This causes rapid melting of wires, toxic smoke, and arc flashes.
-                """)
+                st.warning("**🔥 The Short-Circuit Hazard**\nEven at safe touch voltages, high sustained currents dump massive amounts of energy instantly, causing arc flashes.")
 
             st.divider()
-            
             st.subheader("The Battery Exclusion Rule")
-            st.error("""
-            **Standard low-voltage exemptions do NOT apply to bare battery cells or custom packs.**
+            st.error("**Standard low-voltage exemptions do NOT apply to bare battery cells or custom packs.**\n\nALL energized bare battery assembly and testing is automatically Category 2 and requires a formal Risk Assessment, regardless of the pack's voltage.")
             
-            A single 3.7V lithium-ion cell cannot shock you, but its internal chemistry allows it to discharge extreme currents during a short circuit. This rapidly leads to **thermal runaway**, venting of explosive/toxic gases, and self-sustaining fires that cannot be extinguished with standard methods.
-            
-            **Therefore, ALL energized bare battery assembly, cell balancing, and testing is automatically Category 2 (Complex Work) and requires a formal Risk Assessment and Permit to Energise, regardless of the pack's voltage.**
-            """)
-            
-            # Add friction: Checkbox required to proceed
-            confirm_battery = st.checkbox("I understand that 'low voltage' does not mean 'safe', and that all bare battery work is automatically Category 2.")
-            
+            confirm_battery = st.checkbox("I understand that all bare battery work is automatically Category 2.")
             if confirm_battery:
                 st.button("Next: Emergency Protocols ➡️", on_click=next_step)
             else:
-                st.button("Next: Emergency Protocols ➡️", disabled=True, help="Please check the acknowledgment box above to proceed.")
+                st.button("Next: Emergency Protocols ➡️", disabled=True)
 
-       # PAGE 4: Emergency & DSEAR
+        # PAGE 4: Emergency & DSEAR
         elif st.session_state.training_step == 4:
             st.header("Module 4: Emergency Protocols & Hazardous Environments")
-            st.write("Even with perfect planning, equipment can fail. Your immediate response during a failure dictates whether an incident is a near-miss or a catastrophe.")
             
             col1, col2 = st.columns(2)
-            
             with col1:
-                st.info("""
-                **👥 The Two-Person Rule**
-                **Lone working is strictly forbidden for energized Category 2 work.** 
-                
-                A "Second Person" must be present. This person cannot just be wearing headphones at another desk; they must be explicitly briefed on the experiment and trained on how to safely isolate the rig (e.g., hitting the EPO) in an emergency.
-                """)
-            
+                st.info("**👥 The Two-Person Rule**\nLone working is strictly forbidden for energized Category 2 work. A briefed Second Person must be present.")
             with col2:
-                st.warning("""
-                **🛑 Machinery & Hardwired E-Stops**
-                Under the Supply of Machinery (Safety) Regulations, all bespoke automated machinery (e.g., custom dynamometers) must have a **hardwired Emergency Power Off (EPO)** circuit. 
-                
-                Software-only stops (clicking an e-stop button on a PC interface) are illegal because software can freeze during a fault.
-                """)
+                st.warning("**🛑 Machinery & Hardwired E-Stops**\nAll bespoke automated machinery must have a hardwired Emergency Power Off (EPO) circuit. Software-only stops are illegal.")
 
             st.divider()
-
-            st.subheader("Hazardous Environments (DSEAR)")
-            st.warning("""
-            If you are working near explosive gases (like hydrogen fuel cells or battery off-gassing) or in wet fluid-testing labs, standard electrical equipment is strictly prohibited. 
-            * **Explosive Atmospheres:** Require **ATEX-certified (Ex)** barrier glands and enclosures to prevent sparks from igniting the gas. 
-            * **Wet Labs:** Require **IP67+** rated waterproof components.
-            """)
-            
             st.subheader("Thermal Runaway Emergency Protocol")
-            st.error("""
-            **IF A BATTERY VENTS OR CATCHES FIRE INSIDE A BLAST-RATED CONTAINMENT BOX:**
-            1. **DO NOT OPEN THE BOX.** Introducing fresh oxygen will cause an immediate fireball and explosion.
-            2. Hit the local Emergency Power Off (EPO) to cut power to the test rig.
-            3. Evacuate the immediate area.
-            4. Alert a trained First Aider and the Lab Manager immediately.
-            """)
+            st.error("**IF A BATTERY VENTS OR CATCHES FIRE INSIDE A BLAST-RATED CONTAINMENT BOX:**\n1. **DO NOT OPEN THE BOX.**\n2. Hit the EPO.\n3. Evacuate.\n4. Alert a First Aider.")
             
-            # Add friction: Checkbox required to proceed
-            confirm_emergency = st.checkbox("I understand the Two-Person Rule, the hardwired EPO requirement, and the 'DO NOT OPEN' protocol for thermal runaway emergencies.")
-            
+            confirm_emergency = st.checkbox("I understand the Two-Person Rule, the hardwired EPO requirement, and the 'DO NOT OPEN' protocol.")
             if confirm_emergency:
                 st.button("Proceed to Final Quiz ➡️", on_click=next_step)
             else:
-                st.button("Proceed to Final Quiz ➡️", disabled=True, help="Please check the acknowledgment box above to proceed.")
+                st.button("Proceed to Final Quiz ➡️", disabled=True)
 
         # PAGE 5: The 10-Question Quiz
         elif st.session_state.training_step == 5:
             st.header("📝 Final Induction Quiz")
-            st.write("You must score at least **80% (8/10)** to pass and unlock CAT I lab access. Feel free to open the Reference Documents menu above to verify your answers.")
+            st.write("You must score at least **80% (8/10)** to pass. If you score below 80%, your attempt will be recorded as a fail, and you must retake the training.")
             
             with st.form("quiz_form"):
                 q1 = st.radio("1. Who is ultimately accountable for ensuring you operate within your authorized tier?", ["The Student Union", "The Principal Investigator (PI) / Lab Manager", "The Building Janitor"], index=None)
@@ -296,7 +231,7 @@ else:
                         q1 == "The Principal Investigator (PI) / Lab Manager",
                         q2 == "Use standard, off-the-shelf equipment plugged into a 13A socket",
                         q3 == "A breach of UK law and UCL policy",
-                       q4 == "42.2V AC / 60V DC",
+                        q4 == "42.2V AC / 60V DC",
                         q5 == "No, they carry severe short-circuit and thermal runaway risks",
                         q6 == "A second person trained to hit the EPO must be present for energized CAT II testing",
                         q7 == "ATEX-certified (Ex) components",
@@ -311,9 +246,10 @@ else:
                         st.warning("Please answer all questions before submitting.")
                     elif score >= 8:
                         st.balloons()
-                        pass_induction()
+                        pass_induction(current_upi, user_data['name'], score)
                     else:
-                        st.error(f"You scored {score}/10. 80% (8/10) is required to pass.")
+                        log_attempt(current_upi, user_data['name'], score, False)
+                        st.error(f"You scored {score}/10. 80% (8/10) is required to pass. Your attempt has been logged.")
                         st.button("Review Modules and Try Again", on_click=reset_training)
 
     # ==========================================
@@ -322,17 +258,22 @@ else:
     else:
         st.success(f"Cleared for {user_data['tier']} operations.")
         
-        tab1, tab2 = st.tabs(["🔍 Search & Dashboard", "📚 Document Library"])
+        # Check if the user is an admin to show the extra tab
+        is_admin = current_upi in ["admin", "pouya"]
+        
+        if is_admin:
+            tab1, tab2, tab3 = st.tabs(["🔍 Search & Dashboard", "📚 Document Library", "⚙️ Admin Panel"])
+        else:
+            tab1, tab2 = st.tabs(["🔍 Search & Dashboard", "📚 Document Library"])
         
         # --- TAB 1: Search ---
         with tab1:
             st.header("Lab Information Search")
-            search_query = st.text_input("Search Database (e.g., RIG-001, BATT-02, Pouya):", "")
+            search_query = st.text_input("Search Database (e.g., RIG-001, BATT-02):", "")
             
             if search_query:
                 results = doc_db[doc_db.apply(lambda row: row.astype(str).str.contains(search_query, case=False).any(), axis=1)]
                 if not results.empty:
-                    st.write(f"**Found {len(results)} matching records:**")
                     st.dataframe(results, use_container_width=True, hide_index=True)
                 else:
                     st.warning("No documents or equipment found matching that query.")
@@ -342,49 +283,31 @@ else:
             col_a, col_b = st.columns(2)
             with col_a:
                 st.button("📄 Submit New Permit to Energise")
-                st.button("⚙️ Log Maintenance Activity")
             with col_b:
                 st.button("🚨 Emergency Isolation Protocols", type="primary")
 
         # --- TAB 2: Document Library ---
         with tab2:
             st.header("Official Electrical Competence Documents")
-            st.write("Review the summaries below to understand the rules governing our laboratories. Click the buttons to download the complete, legally binding documents.")
-
-            st.divider()
-
-            st.subheader("1. UCL Corporate Policy: Electrical Safety, Testing, and Maintenance")
-            st.write("**Who is it for?** All staff, PIs, and students.")
-            st.write("""
-            **Core Summary:**
-            * **Legal Framework:** Outlines UCL's statutory duties under EAWR 1989, PUWER 1998, and DSEAR 2002.
-            * **Competency & Accountability:** Defines the ESPER tier system (CAT I, II, III). Establishes that Principal Investigators (PIs) and Lab Managers are strictly accountable for ensuring students do not work outside their authorized tier.
-            * **Information Access:** Mandates the use of this App and QR codes on all active rigs to provide immediate access to safety protocols and maintenance logs.
-            """)
-            
-            st.divider()
-
-            st.subheader("2. Technical Safety Framework & Decision Matrix")
-            st.write("**Who is it for?** Researchers and students planning new experiments or custom test rigs.")
-            st.write("""
-            **Core Summary:**
-            * **Activity Decision Tree:** Provides the step-by-step flowchart to determine if your work is Category 1 (Standard) or Category 2 (Complex/High Risk).
-            * **Battery Rules:** Establishes that **all energized bare battery work is Category 2**, regardless of voltage, due to thermal runaway and short-circuit risks.
-            * **Operational Rules:** Details the strict requirements for the "Two-Person Rule" during energized testing and the mandatory ATEX/IP67 component checks for hazardous environments.
-            """)
-            
-            st.divider()
-
-            st.subheader("3. Industrial Electrical Infrastructure: Conductor Selection & Installation")
-            st.write("**Who is it for?** Category II and III Operatives building custom machinery, dynamometers, or fixed infrastructure.")
-            st.write("""
-            **Core Summary:**
-            * **Cable Sizing & Routing:** The definitive engineering guide for selecting H07RN-F flexible cables and SWA for mechanical protection.
-            * **Hazardous Environments:** Dictates exactly how to route cables through explosive atmospheres (requiring ATEX barrier glands) and wet labs (requiring IP67+ components).
-            * **Verification Testing:** Details the strict testing protocols (Insulation Resistance, Earth Loop Impedance $Z_s$) required before a Permit to Energise can be issued.
-            """)
-            
-            st.divider()
-            
-            st.subheader("Downloads")
             render_download_buttons(key_prefix="library")
+
+        # --- TAB 3: Admin Panel (Only visible to admin/pouya) ---
+        if is_admin:
+            with tab3:
+                st.header("Admin Panel: Student Induction Records")
+                st.write("View and download the logs of all student induction attempts.")
+                
+                if len(st.session_state.quiz_logs) > 0:
+                    logs_df = pd.DataFrame(st.session_state.quiz_logs)
+                    st.dataframe(logs_df, use_container_width=True, hide_index=True)
+                    
+                    # Convert DataFrame to CSV for download
+                    csv = logs_df.to_csv(index=False).encode('utf-8')
+                    st.download_button(
+                        label="⬇️ Download Records as CSV (Excel)",
+                        data=csv,
+                        file_name=f"UCL_Induction_Logs_{datetime.now().strftime('%Y%m%d')}.csv",
+                        mime="text/csv",
+                    )
+                else:
+                    st.info("No students have taken the quiz yet during this session.")
