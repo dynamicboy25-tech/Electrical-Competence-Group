@@ -25,7 +25,7 @@ doc_db = pd.DataFrame({
     "Status": ["Active", "Maintenance", "Active", "Active"]
 })
 
-# --- Navigation Functions ---
+# --- Helper Functions ---
 def next_step():
     st.session_state.training_step += 1
 
@@ -35,9 +35,30 @@ def reset_training():
 def pass_induction():
     st.session_state.user_db[st.session_state.logged_in_user]["inducted"] = True
     st.session_state.user_db[st.session_state.logged_in_user]["tier"] = "CAT I"
-    st.session_state.training_step = 1  # Reset for next time
+    st.session_state.training_step = 1  
     st.success("Induction passed! You are now a CAT I Standard Operative.")
     st.rerun()
+
+def render_download_buttons(key_prefix):
+    """Renders the document download buttons safely, preventing duplicate key errors."""
+    try:
+        with open("corporate_policy.pdf", "rb") as pdf_file:
+            st.download_button(label="⬇️ Download Corporate Policy", data=pdf_file, file_name="UCL_Corporate_Policy.pdf", mime="application/pdf", key=f"{key_prefix}_1")
+    except FileNotFoundError:
+        st.warning("⚠️ corporate_policy.pdf not yet uploaded to repository.")
+        
+    try:
+        with open("technical_framework.pdf", "rb") as pdf_file:
+            st.download_button(label="⬇️ Download Safety Framework & Decision Tree", data=pdf_file, file_name="UCL_Technical_Safety_Framework.pdf", mime="application/pdf", key=f"{key_prefix}_2")
+    except FileNotFoundError:
+        st.warning("⚠️ technical_framework.pdf not yet uploaded to repository.")
+        
+    try:
+        with open("infrastructure_guide.pdf", "rb") as pdf_file:
+            st.download_button(label="⬇️ Download Infrastructure Guide", data=pdf_file, file_name="UCL_Industrial_Infrastructure.pdf", mime="application/pdf", key=f"{key_prefix}_3")
+    except FileNotFoundError:
+        st.warning("⚠️ infrastructure_guide.pdf not yet uploaded to repository.")
+
 
 # --- Main App Logic ---
 st.title("⚡ UCL Electrical Competence Group")
@@ -69,6 +90,13 @@ else:
     # ==========================================
     if not user_data["inducted"]:
         st.progress(st.session_state.training_step / 5, text=f"Step {st.session_state.training_step} of 5")
+        
+        # Accessible Document Expander on EVERY training page
+        with st.expander("📚 View Official Reference Documents"):
+            st.write("You may reference the official policies at any time during this induction or quiz.")
+            render_download_buttons(key_prefix="induction")
+            
+        st.divider()
         
         # PAGE 1: The Regulatory Framework
         if st.session_state.training_step == 1:
@@ -142,7 +170,7 @@ else:
         # PAGE 5: The 10-Question Quiz
         elif st.session_state.training_step == 5:
             st.header("📝 Final Induction Quiz")
-            st.write("You must score at least **80% (8/10)** to pass and unlock CAT I lab access.")
+            st.write("You must score at least **80% (8/10)** to pass and unlock CAT I lab access. Feel free to open the Reference Documents menu above to verify your answers.")
             
             with st.form("quiz_form"):
                 q1 = st.radio("1. Who is ultimately accountable for ensuring you operate within your authorized tier?", ["The Student Union", "The Principal Investigator (PI) / Lab Manager", "The Building Janitor"], index=None)
@@ -189,7 +217,6 @@ else:
     else:
         st.success(f"Cleared for {user_data['tier']} operations.")
         
-        # Create the Tabs
         tab1, tab2 = st.tabs(["🔍 Search & Dashboard", "📚 Document Library"])
         
         # --- TAB 1: Search ---
@@ -214,14 +241,13 @@ else:
             with col_b:
                 st.button("🚨 Emergency Isolation Protocols", type="primary")
 
-       # --- TAB 2: Document Library ---
+        # --- TAB 2: Document Library ---
         with tab2:
             st.header("Official Electrical Competence Documents")
             st.write("Review the summaries below to understand the rules governing our laboratories. Click the buttons to download the complete, legally binding documents.")
 
             st.divider()
 
-            # Document 1
             st.subheader("1. UCL Corporate Policy: Electrical Safety, Testing, and Maintenance")
             st.write("**Who is it for?** All staff, PIs, and students.")
             st.write("""
@@ -230,15 +256,9 @@ else:
             * **Competency & Accountability:** Defines the ESPER tier system (CAT I, II, III). Establishes that Principal Investigators (PIs) and Lab Managers are strictly accountable for ensuring students do not work outside their authorized tier.
             * **Information Access:** Mandates the use of this App and QR codes on all active rigs to provide immediate access to safety protocols and maintenance logs.
             """)
-            try:
-                with open("corporate_policy.pdf", "rb") as pdf_file:
-                    st.download_button(label="⬇️ Download Full Corporate Policy (PDF)", data=pdf_file, file_name="UCL_Corporate_Policy.pdf", mime="application/pdf")
-            except FileNotFoundError:
-                st.warning("⚠️ corporate_policy.pdf not yet uploaded to repository.")
-
+            
             st.divider()
 
-            # Document 2
             st.subheader("2. Technical Safety Framework & Decision Matrix")
             st.write("**Who is it for?** Researchers and students planning new experiments or custom test rigs.")
             st.write("""
@@ -247,15 +267,9 @@ else:
             * **Battery Rules:** Establishes that **all energized bare battery work is Category 2**, regardless of voltage, due to thermal runaway and short-circuit risks.
             * **Operational Rules:** Details the strict requirements for the "Two-Person Rule" during energized testing and the mandatory ATEX/IP67 component checks for hazardous environments.
             """)
-            try:
-                with open("technical_framework.pdf", "rb") as pdf_file:
-                    st.download_button(label="⬇️ Download Safety Framework & Decision Matrix (PDF)", data=pdf_file, file_name="UCL_Technical_Safety_Framework.pdf", mime="application/pdf")
-            except FileNotFoundError:
-                st.warning("⚠️ technical_framework.pdf not yet uploaded to repository.")
-
+            
             st.divider()
 
-            # Document 3
             st.subheader("3. Industrial Electrical Infrastructure: Conductor Selection & Installation")
             st.write("**Who is it for?** Category II and III Operatives building custom machinery, dynamometers, or fixed infrastructure.")
             st.write("""
@@ -264,8 +278,8 @@ else:
             * **Hazardous Environments:** Dictates exactly how to route cables through explosive atmospheres (requiring ATEX barrier glands) and wet labs (requiring IP67+ components).
             * **Verification Testing:** Details the strict testing protocols (Insulation Resistance, Earth Loop Impedance $Z_s$) required before a Permit to Energise can be issued.
             """)
-            try:
-                with open("infrastructure_guide.pdf", "rb") as pdf_file:
-                    st.download_button(label="⬇️ Download Infrastructure Guide (PDF)", data=pdf_file, file_name="UCL_Industrial_Infrastructure.pdf", mime="application/pdf")
-            except FileNotFoundError:
-                st.warning("⚠️ infrastructure_guide.pdf not yet uploaded to repository.")
+            
+            st.divider()
+            
+            st.subheader("Downloads")
+            render_download_buttons(key_prefix="library")
