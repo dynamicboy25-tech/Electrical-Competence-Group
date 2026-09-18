@@ -214,43 +214,58 @@ else:
             with col_b:
                 st.button("🚨 Emergency Isolation Protocols", type="primary")
 
-        # --- TAB 2: Document Library ---
+       # --- TAB 2: Document Library ---
         with tab2:
             st.header("Official Electrical Competence Documents")
-            st.write("Review the summaries below to understand the rules governing our laboratories. Click the links to access the complete, legally binding documents.")
+            st.write("Review the summaries below to understand the rules governing our laboratories. Click the buttons to download the complete, legally binding documents.")
 
             st.divider()
 
+            # Document 1
             st.subheader("1. UCL Corporate Policy: Electrical Safety, Testing, and Maintenance")
             st.write("**Who is it for?** All staff, PIs, and students.")
-            st.write("**Core Summary:**")
             st.write("""
+            **Core Summary:**
             * **Legal Framework:** Outlines UCL's statutory duties under EAWR 1989, PUWER 1998, and DSEAR 2002.
             * **Competency & Accountability:** Defines the ESPER tier system (CAT I, II, III). Establishes that Principal Investigators (PIs) and Lab Managers are strictly accountable for ensuring students do not work outside their authorized tier.
             * **Information Access:** Mandates the use of this App and QR codes on all active rigs to provide immediate access to safety protocols and maintenance logs.
             """)
-            st.markdown("[📄 **Read Full Corporate Policy (PDF)**](https://github.com/your-repo/corporate-policy.pdf)")
+            try:
+                with open("corporate_policy.pdf", "rb") as pdf_file:
+                    st.download_button(label="⬇️ Download Full Corporate Policy (PDF)", data=pdf_file, file_name="UCL_Corporate_Policy.pdf", mime="application/pdf")
+            except FileNotFoundError:
+                st.warning("⚠️ corporate_policy.pdf not yet uploaded to repository.")
 
             st.divider()
 
+            # Document 2
             st.subheader("2. Technical Safety Framework & Decision Matrix")
             st.write("**Who is it for?** Researchers and students planning new experiments or custom test rigs.")
-            st.write("**Core Summary:**")
             st.write("""
+            **Core Summary:**
             * **Activity Decision Tree:** Provides the step-by-step flowchart to determine if your work is Category 1 (Standard) or Category 2 (Complex/High Risk).
             * **Battery Rules:** Establishes that **all energized bare battery work is Category 2**, regardless of voltage, due to thermal runaway and short-circuit risks.
             * **Operational Rules:** Details the strict requirements for the "Two-Person Rule" during energized testing and the mandatory ATEX/IP67 component checks for hazardous environments.
             """)
-            st.markdown("[📄 **Read Full Safety Framework & Decision Matrix (PDF)**](https://github.com/your-repo/technical-framework.pdf)")
+            try:
+                with open("technical_framework.pdf", "rb") as pdf_file:
+                    st.download_button(label="⬇️ Download Safety Framework & Decision Matrix (PDF)", data=pdf_file, file_name="UCL_Technical_Safety_Framework.pdf", mime="application/pdf")
+            except FileNotFoundError:
+                st.warning("⚠️ technical_framework.pdf not yet uploaded to repository.")
 
             st.divider()
 
+            # Document 3
             st.subheader("3. Industrial Electrical Infrastructure: Conductor Selection & Installation")
             st.write("**Who is it for?** Category II and III Operatives building custom machinery, dynamometers, or fixed infrastructure.")
-            st.write("**Core Summary:**")
             st.write("""
+            **Core Summary:**
             * **Cable Sizing & Routing:** The definitive engineering guide for selecting H07RN-F flexible cables and SWA for mechanical protection.
             * **Hazardous Environments:** Dictates exactly how to route cables through explosive atmospheres (requiring ATEX barrier glands) and wet labs (requiring IP67+ components).
             * **Verification Testing:** Details the strict testing protocols (Insulation Resistance, Earth Loop Impedance $Z_s$) required before a Permit to Energise can be issued.
             """)
-            st.markdown("[📄 **Read Full Infrastructure Guide (PDF)**](https://github.com/your-repo/infrastructure-guide.pdf)")
+            try:
+                with open("infrastructure_guide.pdf", "rb") as pdf_file:
+                    st.download_button(label="⬇️ Download Infrastructure Guide (PDF)", data=pdf_file, file_name="UCL_Industrial_Infrastructure.pdf", mime="application/pdf")
+            except FileNotFoundError:
+                st.warning("⚠️ infrastructure_guide.pdf not yet uploaded to repository.")
