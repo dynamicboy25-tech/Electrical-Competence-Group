@@ -186,14 +186,42 @@ else:
         # PAGE 3: Voltage & Batteries
         elif st.session_state.training_step == 3:
             st.header("Module 3: Voltage Limits & Battery Hazards")
-            st.write("Category 2 (Complex/High Risk) Work automatically includes any setup exceeding standard SELV limits: **50V AC or 120V DC**.")
-            st.error("""
-            **THE BATTERY EXCEPTION**
-            Standard low-voltage exemptions do **NOT** apply to batteries. Even a single lithium-ion cell carries severe risks of high short-circuit currents, arc flashes, and thermal runaway. 
+            st.write("A common and dangerous misconception in the laboratory is that 'low voltage' always means 'low risk.' The ESPER framework strictly separates voltage hazards (shock) from current hazards (fire and thermal runaway).")
             
-            Therefore, **all bare battery assembly and testing is classified as Category 2** and requires a formal Risk Assessment, regardless of voltage.
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.info("""
+                **🔌 The Low Voltage Exemption**
+                Systems operating strictly below **42.2V AC or 60V DC** are generally exempt from the Specialist Review and remain Category 1, **PROVIDED** they are driven by a current-limited source (like a standard benchtop power supply). 
+                
+                At these levels, the primary risk of lethal electric shock is mitigated.
+                """)
+            
+            with col2:
+                st.warning("""
+                **🔥 The Short-Circuit Hazard**
+                Even at safe touch voltages (e.g., 12V), if the power source is capable of delivering high sustained currents, a short circuit will dump massive amounts of energy instantly. This causes rapid melting of wires, toxic smoke, and arc flashes.
+                """)
+
+            st.divider()
+            
+            st.subheader("The Battery Exclusion Rule")
+            st.error("""
+            **Standard low-voltage exemptions do NOT apply to bare battery cells or custom packs.**
+            
+            A single 3.7V lithium-ion cell cannot shock you, but its internal chemistry allows it to discharge extreme currents during a short circuit. This rapidly leads to **thermal runaway**, venting of explosive/toxic gases, and self-sustaining fires that cannot be extinguished with standard methods.
+            
+            **Therefore, ALL energized bare battery assembly, cell balancing, and testing is automatically Category 2 (Complex Work) and requires a formal Risk Assessment and Permit to Energise, regardless of the pack's voltage.**
             """)
-            st.button("Next: Emergency Protocols ➡️", on_click=next_step)
+            
+            # Add friction: Checkbox required to proceed
+            confirm_battery = st.checkbox("I understand that 'low voltage' does not mean 'safe', and that all bare battery work is automatically Category 2.")
+            
+            if confirm_battery:
+                st.button("Next: Emergency Protocols ➡️", on_click=next_step)
+            else:
+                st.button("Next: Emergency Protocols ➡️", disabled=True, help="Please check the acknowledgment box above to proceed.")
 
         # PAGE 4: Emergency & DSEAR
         elif st.session_state.training_step == 4:
@@ -214,7 +242,7 @@ else:
                 q1 = st.radio("1. Who is ultimately accountable for ensuring you operate within your authorized tier?", ["The Student Union", "The Principal Investigator (PI) / Lab Manager", "The Building Janitor"], index=None)
                 q2 = st.radio("2. As a CAT I Standard Operative, what are you authorized to do?", ["Build custom battery packs", "Modify the wiring of a dynamometer", "Use standard, off-the-shelf equipment plugged into a 13A socket"], index=None)
                 q3 = st.radio("3. Under the EAWR 1989 and PUWER 1998, working outside your competency tier is:", ["A breach of UK law and UCL policy", "Allowed if you are careful", "Allowed if you watch a YouTube tutorial"], index=None)
-                q4 = st.radio("4. What are the voltage limits for the SELV exemption?", ["15V AC / 20V DC", "50V AC / 120V DC", "230V AC / 400V DC"], index=None)
+                q4 = st.radio("4. What are the voltage limits for the SELV exemption (provided the source is current-limited)?", ["15V AC / 20V DC", "42.2V AC / 60V DC", "50V AC / 120V DC"], index=None)
                 q5 = st.radio("5. Are bare lithium-ion battery cells exempt from Category II rules if they are under 50V?", ["Yes, low voltage means low risk", "No, they carry severe short-circuit and thermal runaway risks"], index=None)
                 q6 = st.radio("6. What is the 'Two-Person Rule'?", ["Two people must sign a document", "A second person trained to hit the EPO must be present for energized CAT II testing", "You must use two multimeters"], index=None)
                 q7 = st.radio("7. If working in a DSEAR zoned explosive atmosphere (e.g., battery off-gassing), what equipment is required?", ["Standard plastic enclosures", "ATEX-certified (Ex) components", "Any waterproof component"], index=None)
@@ -229,7 +257,7 @@ else:
                         q1 == "The Principal Investigator (PI) / Lab Manager",
                         q2 == "Use standard, off-the-shelf equipment plugged into a 13A socket",
                         q3 == "A breach of UK law and UCL policy",
-                        q4 == "50V AC / 120V DC",
+                       q4 == "42.2V AC / 60V DC",
                         q5 == "No, they carry severe short-circuit and thermal runaway risks",
                         q6 == "A second person trained to hit the EPO must be present for energized CAT II testing",
                         q7 == "ATEX-certified (Ex) components",
